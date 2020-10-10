@@ -5,19 +5,16 @@ import com.gomezrondon.searchtextreactivemongo.entity.DocFile;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-
 import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.BaseStream;
-import java.util.stream.Stream;
 
 
 @SpringBootApplication(proxyBeanMethods = false)
@@ -36,48 +33,55 @@ public class Application  implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
-
-	//	folder.listFiles()
-/*		try (Stream<Path> paths = Files.walk(Paths.get("C:\\temp"))) {
-			paths
-					.filter(Files::isRegularFile)
-					.forEach(System.out::println);
-		}*/
+		String mainPath = "C:\\temp";
 
 		List<String> whitelist = List.of("txt", "sql", "java", "py", "bat", "csv", "kt", "kts");
 
+		Flux<DocFile> filesWithContent = getFilesWithContent(whitelist, mainPath);
+		Flux<DocFile> filesSinContent = getFilesSinContent(whitelist, mainPath);
 
-		String mainPath = "C:\\temp";
-		Flux.fromStream(Files.walk(Paths.get(mainPath)))
+		//here we drop the collection and save all records
+		repository.deleteAll()
+				.thenMany(repository.saveAll(filesWithContent))
+				.thenMany(repository.saveAll(filesSinContent))
+				.doOnComplete(()->System.out.println("Finished>>>>>"))
+				.subscribe();
+
+	}
+
+	private Flux<DocFile> getFilesSinContent(List<String> whitelist, String mainPath) throws IOException {
+		return getFilesFronDirectoryRecursive(mainPath)
+				.map(p -> new File(String.valueOf(p)))
+				.filter(File::isFile)
+				.filter(file -> !whitelist.contains(getExtensionOfFile(file)))
+				.map(file -> {
+					String extension = getExtensionOfFile(file);
+					return new DocFile(file.getName(), extension, file.getPath(), List.of());
+
+				});
+	}
+
+	private Flux<DocFile> getFilesWithContent(List<String> whitelist, String mainPath) throws IOException {
+		return getFilesFronDirectoryRecursive(mainPath)
 				.map(p -> new File(String.valueOf(p)))
 				.filter(File::isFile)
 				.filter(file -> whitelist.contains(getExtensionOfFile(file)))
 				.map(file -> {
 					String extension = getExtensionOfFile(file);
-/*					List<String> lines = fromPath(file.toPath())
+					//		System.out.println(file.getAbsolutePath());
+					List<String> lines = fromPath(file.toPath())
 							.filter(word -> word.length() > 2)
-							.collectList().block();*/
-				 return new DocFile(file.getName(), extension, file.getPath(), null);
+							.collectList().block();
+					return new DocFile(file.getName(), extension, file.getPath(), lines);
 
-				})
-				.flatMap(repository::save)
-				.subscribe( );
-				//.subscribe(System.out::println);
+				});
+	}
 
-/*		try (Stream<Path> paths = Files.walk(Paths.get("C:\\temp\\test.txt"))) {
-			Flux.fromStream(paths)
-					//.filter(Files::isRegularFile)
-					.map(l -> {
-						fromPath(l).subscribe(System.out::println);
-						return Mono.empty();
-					}).subscribe();
-
-		}*/
-
-	//	Thread.sleep(5000);
-
-	//	fromPath(Path.of("C:\\temp")).subscribe(System.out::println);
-
+	private Flux<Path> getFilesFronDirectoryRecursive(String mainPath) {
+		return Flux.using(() -> Files.walk(Path.of(mainPath)),
+				Flux::fromStream,
+				BaseStream::close
+		);
 	}
 
 	public static String getExtensionOfFile(File file)
@@ -96,7 +100,7 @@ public class Application  implements CommandLineRunner {
 	}
 
 	private static Flux<String> fromPath(Path path) {
-		return Flux.using(() -> Files.lines(path),
+		return Flux.using(() -> Files.lines(path, StandardCharsets.ISO_8859_1),
 				Flux::fromStream,
 				BaseStream::close
 		);
@@ -109,5 +113,5 @@ public class Application  implements CommandLineRunner {
 
 interface DocFileRepository extends ReactiveCrudRepository<DocFile, String> {
 
-	Flux<DocFile> findByNameContains(String s);
+	//Flux<DocFile> findByNameContains(String s);
 }

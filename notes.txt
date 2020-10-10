@@ -11,3 +11,13 @@ docker-compose -f docker-comp-app.yml down
 
 // borrar images y forzar
 docker images | grep "none" | awk '{print $3}' | xargs docker rmi -f
+
+mongo compas
+filters
+{ type: "zip" }
+
+
+
+
+
+
