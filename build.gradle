@@ -1,0 +1,37 @@
+plugins {
+	id 'org.springframework.boot' version '2.4.0-M3'
+	id 'io.spring.dependency-management' version '1.0.10.RELEASE'
+	id 'java'
+}
+
+group = 'com.gomezrondon'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+repositories {
+	mavenCentral()
+	maven { url 'https://repo.spring.io/milestone' }
+}
+
+dependencies {
+	implementation 'org.springframework.experimental:spring-graalvm-native:0.8.1'
+	implementation 'org.springframework.boot:spring-boot-starter-data-mongodb-reactive'
+	compile group: 'io.projectreactor', name: 'reactor-core', version: '3.3.3.RELEASE'
+
+
+//	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'io.projectreactor:reactor-test'
+}
+
+test {
+	useJUnitPlatform()
+}
+
+bootBuildImage {
+	builder = "paketobuildpacks/builder:tiny"
+	environment = [
+			"BP_BOOT_NATIVE_IMAGE" : "1",
+			"BP_BOOT_NATIVE_IMAGE_BUILD_ARGUMENTS" : "-Dspring.native.remove-yaml-support=true -Dspring.spel.ignore=true"
+	]
+}

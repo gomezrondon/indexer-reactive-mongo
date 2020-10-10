@@ -1,0 +1,13 @@
+Query { "$java" : Query: { "content" : { "$in" : ["name 120"]}}, Fields: {}, Sort: {} }
+
+--------- with gradle
+gradle clean bootRun
+https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/html/#build-image-example-builder-configuration
+gradle clean bootBuildImage
+
+
+docker-compose -f docker-comp-app.yml up
+docker-compose -f docker-comp-app.yml down
+
+// borrar images y forzar
+docker images | grep "none" | awk '{print $3}' | xargs docker rmi -f
