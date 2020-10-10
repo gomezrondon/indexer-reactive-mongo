@@ -11,4 +11,4 @@ pluginManagement {
 		}
 	}
 }
-rootProject.name = 'search-text-reactive-mongo'
+rootProject.name = 'indexer-reactive-mongo'
