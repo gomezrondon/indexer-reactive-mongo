@@ -53,10 +53,15 @@ public class Application  implements CommandLineRunner {
 				.filter(File::isFile)
 				.filter(file -> whitelist.contains(getExtensionOfFile(file)))
 				.map(file -> {
-					fromPath(file.toPath()).subscribe(System.out::println);
-					return Mono.empty();
+					String extension = getExtensionOfFile(file);
+/*					List<String> lines = fromPath(file.toPath())
+							.filter(word -> word.length() > 2)
+							.collectList().block();*/
+				 return new DocFile(file.getName(), extension, file.getPath(), null);
+
 				})
-				.subscribe();
+				.flatMap(repository::save)
+				.subscribe( );
 				//.subscribe(System.out::println);
 
 /*		try (Stream<Path> paths = Files.walk(Paths.get("C:\\temp\\test.txt"))) {
