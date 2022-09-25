@@ -8,6 +8,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -43,6 +45,7 @@ public class Application  implements CommandLineRunner {
 		//here we drop the collection and save all records
 		repository.deleteAll()
 				.thenMany(repository.saveAll(filesWithContent))
+//				.log()
 				.thenMany(repository.saveAll(filesSinContent))
 				.doOnComplete(()->System.out.println("Finished>>>>>"))
 				.subscribe();
@@ -66,14 +69,13 @@ public class Application  implements CommandLineRunner {
 				.map(p -> new File(String.valueOf(p)))
 				.filter(File::isFile)
 				.filter(file -> whitelist.contains(getExtensionOfFile(file)))
-				.map(file -> {
+				.flatMap(file -> {
 					String extension = getExtensionOfFile(file);
 					//		System.out.println(file.getAbsolutePath());
-					List<String> lines = fromPath(file.toPath())
-							.filter(word -> word.length() > 2)
-							.collectList().block();
-					return new DocFile(file.getName(), extension, file.getPath(), lines);
 
+					return fromPath(file.toPath())
+							.filter(word -> word.length() > 2)
+							.collectList().map(list -> new DocFile(file.getName(), extension, file.getPath(), list));
 				});
 	}
 
